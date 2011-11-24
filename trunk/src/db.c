@@ -10,16 +10,20 @@
 #include <sqlite3.h>
 #include <string.h>
 #include <errno.h>
+#include <wordexp.h>
 #include "RSAChat.h"
+#include "db.h"
+
 
 /**
  * sqlite3 callback function
  */
 static int callback(void *NotUsed, int argc, char **argv, char **azColName){
    NotUsed=0;
+   azColName = NULL;
    int i;
    for(i=0; i<argc; i++){
-     printf("%s = %s\n", azColName[i], argv[i] ? argv[i]: "NULL");
+     printf("%s\t", argv[i] ? argv[i]: "NULL");
    }
    printf("\n");
    return 0;
@@ -30,20 +34,25 @@ static int callback(void *NotUsed, int argc, char **argv, char **azColName){
  * Opens connection to specified db
  *
  * @param db_name path to sqlite3 db
- * @return if successful return pointer to sqlite3 otherwise null
+ * @return if successful return pointer to sqlite3 otherwise NULL
  */
 sqlite3 *sqlite3_open_db(char *db_name) {
 	sqlite3 *db;
 	int rc;
+	wordexp_t exp_result;
 
-	printf("db_name: %s\n", db_name);
-	rc = sqlite3_open(db_name, &db);
+	// Perform word expansion like a posix-shell
+	// ~ -> /home/<user>
+	wordexp(db_name, &exp_result, 0);
+
+	rc = sqlite3_open(exp_result.we_wordv[0], &db);
 	if (rc) {
 		M_PRINT_ERROR(sqlite3_errmsg(db));
 		sqlite3_close(db);
-		return NULL;
+		db = NULL;
 	}
 
+	wordfree(&exp_result);
 	return db;
 }
 

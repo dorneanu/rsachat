@@ -18,15 +18,7 @@
 #include <pthread.h>
 #include <time.h>
 #include "RSAChat.h"
-
-
-// Declarations
-int   chat_client_connect (char *, int);
-void  chat_client_start(char *, int);
-void  chat_client_read_and_send(int);
-int   chat_client_write(int, char [], int);
-int   chat_client_read(int, char [], int);
-void* chat_client_receive(void *);
+#include "client.h"
 
 
 
@@ -61,6 +53,7 @@ int chat_client_connect(char *host, int port) {
 					  (struct sockaddr *) &sock, sizeof(sock))) < 0 )
 		M_EXIT_ON_ERROR("Error connecting to server");
 
+	M_PRINT_STATUS("Connected to server!\n");
 	return server_socket_fd;
 }
 

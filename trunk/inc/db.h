@@ -9,9 +9,6 @@
 #define DB_H_
 #include <sqlite3.h>
 
-#define SQLITE3_DEFAULT_DB			"file://home/victor/.chatstore"
-
-
 // Function declarations
 sqlite3 *sqlite3_open_db(char *);
 void sqlite3_exec_query(sqlite3 *, char *);

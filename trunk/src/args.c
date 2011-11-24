@@ -24,6 +24,7 @@ static void print_syntax(char *prog) {
 	// Print usage syntax
     printf("Usage: %s [arguments]\n", prog);
     printf(" -h 	\t\t print this message\n");
+    printf(" -a     \t\t print all available keys\n");
     printf(" -i <nick> \t\t Create a fresh RSA key pair and store it in\n");
     printf("           \t\t $HOME/.chatstore under the given nickname\n\n");
     printf(" -c <host> <port> \t Open secure connection to <host> on <port>\n");
@@ -36,7 +37,14 @@ static void print_syntax(char *prog) {
 }
 
 
-prog_args *check_args(int argc, char **argv) {
+/**
+ * Parse arguments and return own arguments structure
+ *
+ * @param argc number or arguments
+ * @param **argv pointers to arguments
+ * @return pointer to prog_args structure
+ */
+prog_args *parse_args(int argc, char **argv) {
 	int opt;
 	prog_args *args;
 	char *saveptr1;
@@ -52,7 +60,7 @@ prog_args *check_args(int argc, char **argv) {
 		fprintf(stderr, "Error: Allocate memory!");
 
 	// Parse arguments
-	while ((opt = getopt(argc, argv, "hi:c:l:r:v")) != -1) {
+	while ((opt = getopt(argc, argv, "ahi:c:l:r:v")) != -1) {
 		switch (opt) {
 			case 'h':
 				print_syntax(argv[0]);
@@ -63,8 +71,12 @@ prog_args *check_args(int argc, char **argv) {
 				printf("Version: %s\n", D_CONFIG_VERSION);
 				exit(EXIT_SUCCESS);
 
+			case 'a':
+				args->f_list_keys = 1;
+				break;
+
 			case 'i':
-				printf("Generate new RSA Key pair");
+				args->new_nick = optarg;
 				break;
 
 			case 'c':
@@ -93,5 +105,6 @@ prog_args *check_args(int argc, char **argv) {
 
 	return args;
 }
+
 
 

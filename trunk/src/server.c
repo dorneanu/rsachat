@@ -18,6 +18,7 @@
 #include <sys/socket.h>
 #include <pthread.h>
 #include "RSAChat.h"
+#include "server.h"
 
 
 // FIXME: 20 might be to much
@@ -26,17 +27,6 @@
 
 volatile fd_set the_state;
 pthread_mutex_t mutex_state = PTHREAD_MUTEX_INITIALIZER;
-
-
-// Declarations
-int   chat_server_init(int);
-void  chat_server_start();
-int   chat_server_client_handler(int);
-void  chat_server_loop(int);
-void* chat_server_read(void *);
-int   chat_server_write(int, char[], int);
-void  chat_server_write_to_clients(int, char[]);
-
 
 
 

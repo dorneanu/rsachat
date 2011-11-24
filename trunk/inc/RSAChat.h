@@ -19,6 +19,10 @@
 #define M_PRINT_ERROR(msg) fprintf(stderr, "%s:%d >> Error: %s\n", \
 						__FILE__, __LINE__, msg)
 #define M_EXIT_ON_ERROR(msg) {M_PRINT_ERROR(msg); exit(EXIT_FAILURE);}
+#define M_PRINT_STATUS(...) fprintf(stdout, "\033[41m[--]\033[0m " __VA_ARGS__ )
+
+
+#define SQLITE3_DEFAULT_DB			"~/.chatstore"
 
 
 // Structures

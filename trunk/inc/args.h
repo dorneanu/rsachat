@@ -16,10 +16,11 @@ typedef struct {
 	char *host;				// servers hostname
 	int port;				// servers port number
 	int f_listen; 			// listen flag; if 1 act as server
+	int f_list_keys;		// print available keys
 } prog_args;
 
 
 // Function declarations
-prog_args*  check_args(int, char **);
+prog_args*  parse_args(int, char **);
 
 #endif /* ARGS_H_ */
