@@ -7,8 +7,9 @@
 
 #include <openssl/bn.h>
 #include <assert.h>
-#include "crypto.h"
 #include <string.h>
+#include "crypto.h"
+#include "key.h"
 
 
 /** 
@@ -68,9 +69,11 @@ int _implGenerateKeyPair(Key* _key1, Key* _key2, int bitLength,BIGNUM* p, BIGNUM
 
 	return 1;
 }
+
+
 /**
  * generates one pair of key so that N has bitLength bits.
- * this means the that the bit the higehst value is always one.
+ * this means the that the bit the highest value is always one.
  * @param[out] _key1 - first key, if _key == 0 then a key will be created which have to be freed with key_free()
  * @param[out] _key2 - second key
  * @param bitLength Length of the N value
@@ -118,6 +121,7 @@ int encryptedBlockSize(Key* _key)
 	return BN_num_bytes(_key->N);
 }
 
+
 /**
  * computes the block size of decrypted data
  * if it is decrypted with _key
@@ -132,7 +136,6 @@ int decryptedBlockSize(Key* _key)
 	assert(_key != 0);
 	return BN_num_bytes(_key->N)-1;
 }
-
 
 
 /**
@@ -152,6 +155,8 @@ int encryptedBlockCount(Key* _key,int _length)
 	if(_length % block > 0) ++ret;
 	return ret;
 }
+
+
 /**
  * computes the number of blocks of decrypted data of
  * length _length
@@ -170,6 +175,7 @@ int decryptedBlockCount(Key* _key,int _length)
 	return ret;
 }
 
+
 /**
  * computes size of encrypted data, which takes
  * _size bytes in decrypted form
@@ -184,6 +190,8 @@ int encryptedSize(Key* _key,int _size)
 	assert(_size >= 0);
 	return encryptedBlockSize(_key) * encryptedBlockCount(_key,_size);
 }
+
+
 /**
  * computes size of decrypted data, which takes
  * _size bytes in encrypted form
@@ -200,9 +208,8 @@ int decryptedSize(Key* _key,int _size)
 }
 
 
-
 /**
- * encryptes srcBuffer with a length of encryptedBlockSize(_key) and saves the result in destBuffer
+ * encrypts srcBuffer with a length of encryptedBlockSize(_key) and saves the result in destBuffer
  *
  * @param _key involved key
  * @param srcBuffer source Buffer
@@ -240,6 +247,8 @@ int encryptBlock(Key* _key,unsigned char const* srcBuffer, unsigned char* destBu
 
 	return ret;
 }
+
+
 /**
  * decryptes srcBuffer with a length of decryptedBlockSize(_key) and saves the result in destBuffer
  *
@@ -290,7 +299,7 @@ int decryptBlock(Key* _key,unsigned char const* srcBuffer, unsigned char* destBu
  * @param destBuffer buffer to store the encrypted data. This buffer needs to contain encryptedSize(_key,length) bytes
  * @return 0 return on error, 1 returned on on success
  */
-int encrypt(Key* _key,char const* srcBuffer,int length,char* destBuffer)
+int encrypt(Key* _key, char const* srcBuffer, int length, char* destBuffer)
 {
 
 	int deBlockSize = decryptedBlockSize(_key);
@@ -310,13 +319,14 @@ int encrypt(Key* _key,char const* srcBuffer,int length,char* destBuffer)
 	unsigned char* block = malloc(sizeof(unsigned char)*deBlockSize);
 	memset(block,0,deBlockSize);
 	memcpy(block,srcBuffer+(deBlockCount-1)*deBlockSize, length % deBlockSize);
-	
+
 	int ret = encryptBlock(_key,(unsigned char*)block,(unsigned char*)destBuffer+(deBlockCount-1)*enBlockSize);
-	
+
 	free(block);
 
 	return ret;
 }
+
 
 /**
  * decrypts a buffer with a given key, and stores it in a different buffer

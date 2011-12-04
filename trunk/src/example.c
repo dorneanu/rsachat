@@ -80,6 +80,7 @@ void example04(void)
 {
 	Key *k1 = key_str2key(gstr_privateKey);
 	Key *k2 = key_str2key(gstr_publicKey);
+	int i;
 
 	// es soll der Text in gstr_message verschlüsselt werden
 	// die verschlüsselte länge, eines nicht verschlüsselten text
@@ -93,7 +94,10 @@ void example04(void)
 
 	printf("Verschüsselter Tex hat länge: %i\n",encryptedLen);
 	
+
 	// -- Do Something
+	for (i = 0; i < sizeof(encryptedBuffer); i++)
+		printf("%02X, ", encryptedBuffer[i]);
 	
 	free(encryptedBuffer);
 

@@ -8,10 +8,18 @@
 #define RSACHAT_H_
 
 #include <string.h>
+#include "args.h"
+#include "db.h"
+#include "server.h"
+
+// Declarations
+void check_args(prog_args *);
+void generate_new_rsa_key_pair(sqlite3 *, prog_args *);
 
 #define D_CONFIG_VERSION    "0.1"
 #define D_CONFIG_AUTHOR     "Victor Dorneanu & Simon Gene"
 #define BUFSIZE				1024
+#define HELLO_MSG_DELIM 	"<---->"
 
 // Useful macros
 #define M_ERROR fprintf(stderr, ">> %s:%d Error: %s\n", \
@@ -31,6 +39,7 @@ struct thread_info {    		/* Used as argument to thread_start() */
     int       thread_num;       /* Application-defined thread # */
     char     *thread_name;      /* From command-line argument */
     int 	  socket_fd;		/* socket fd */
+    client_session *cs;			/* client session */
 };
 
 

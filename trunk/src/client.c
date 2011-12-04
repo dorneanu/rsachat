@@ -19,7 +19,58 @@
 #include <time.h>
 #include "RSAChat.h"
 #include "client.h"
+#include "server.h"
+#include "utils.h"
 
+
+// Global variable
+client_session *cs;
+server_session *ss;
+
+
+/**
+ * Start a new client
+ *
+ * @param host hostname of server
+ * @param port port number
+ */
+void chat_client_start(prog_args *args) {
+	int server_socket_fd = -1;
+	struct thread_info *tinfo;
+	pthread_t threadID;
+
+	// Init sessions
+	if((cs = malloc(sizeof(client_session))) == NULL)
+		M_EXIT_ON_ERROR("Can't allocate memory");
+
+	if ((ss = malloc(sizeof(server_session))) == NULL)
+		M_EXIT_ON_ERROR("Can't allocate memory");
+
+	cs->nickname = args->nick;
+
+	// Get keys from DB
+	cs->rsa_priv_key = key_get_private_key(args->db, args->nick);
+	cs->rsa_pub_key  = key_get_public_key(args->db, args->nick);
+	M_PRINT_STATUS("Got own RSA key from DB\n");
+
+
+	// Allocate mem for struct thread_info
+	if ((tinfo = malloc(sizeof(struct thread_info))) == NULL)
+		M_EXIT_ON_ERROR("Can't allocate memory");
+
+	server_socket_fd = chat_client_connect(args->host, args->port);
+	tinfo->socket_fd = server_socket_fd;
+
+
+	// Send public key to server and receive server's public key
+	chat_client_exchange_keys_and_nicknames(server_socket_fd);
+
+	// 2 Threads: One for receiving data from server, one for sending data
+	pthread_create(&threadID, NULL, chat_client_receive, tinfo);
+	chat_client_read_and_send(server_socket_fd);
+
+	pthread_exit(NULL);
+}
 
 
 /**
@@ -97,20 +148,6 @@ int chat_client_write(int socket_fd, char buf[], int buflen) {
 }
 
 
-/*
- * Same effect as fgets but we overwrite the '\n' by '\0'
- */
-char *mygetline(char *line, int size)
-{
-	if (fgets(line, size, stdin)) {
-		char *newline = strchr(line, '\n'); /* check for trailing '\n' */
-		if (newline) {
-			*newline = '\0'; /* overwrite the '\n' with a terminating null */
-		}
-	}
-	return line;
-}
-
 
 /**
  * Reads from stdin and sends data to server
@@ -127,8 +164,13 @@ void chat_client_read_and_send(int server_socket_fd) {
 		if(!(mygetline(buf, BUFSIZE)))
 			M_PRINT_ERROR("fgets error");
 
+		// Encrypt line with servers public key
+		int encryptedLen = encryptedSize(ss->rsa_pub_key, strlen(buf)+1);
+		char *encryptedBuffer = malloc(encryptedLen);
+		encrypt(ss->rsa_pub_key, buf, strlen(buf)+1, encryptedBuffer);
+
 		// Send to server
-		chat_client_write(server_socket_fd, buf, BUFSIZE);
+		chat_client_write(server_socket_fd, encryptedBuffer,BUFSIZE);
 	}
 }
 
@@ -141,19 +183,25 @@ void *chat_client_receive(void *arg) {
 	struct thread_info *tinfo = (struct thread_info *) arg;
 	int server_fd = tinfo->socket_fd;
 	char buf[BUFSIZE];
-	int num_bytes = 0;
+	int buflen = 0;
 
 	while (1) {
 		memset(buf, 0, BUFSIZE);
-		num_bytes = chat_client_read(server_fd, buf, BUFSIZE);
+		buflen = chat_client_read(server_fd, buf, BUFSIZE);
 
 		// Check if server closed the connection
-		if (num_bytes == 0) {
+		if (buflen == 0) {
 			M_PRINT_ERROR("Lost server connection");
 			close(server_fd);
 			exit(EXIT_FAILURE);
 		} else {
-			printf("%s\n", buf);
+			// Decrypt message
+			int decryptedLen = decryptedSize(cs->rsa_priv_key, buflen);
+			char *decryptedBuffer = malloc(decryptedLen);
+			decrypt(cs->rsa_priv_key, buf, buflen, decryptedBuffer);
+
+			printf("<%s> %s\n", ss->nickname, decryptedBuffer);
+			free(decryptedBuffer);
 		}
 	}
 
@@ -162,28 +210,39 @@ void *chat_client_receive(void *arg) {
 
 
 /**
- * Start a new client
+ * Exchange public keys (between client and server)
  *
- * @param host hostname of server
- * @param port port number
+ * @param server_fd server's fd
  */
-void chat_client_start(char *host, int port) {
-	int server_socket_fd = -1;
-	struct thread_info *tinfo;
-	pthread_t threadID;
+void chat_client_exchange_keys_and_nicknames(int server_fd) {
+	char *hello_message_to_server;			/* consists of: <nickname>HELLO_MSG_DELIM<public key> */
+	char *hello_message_from_server;
+	char *own_public_key = key_key2str(cs->rsa_pub_key);
 
-	// Allocate mem for struct thread_info
-	if ((tinfo = malloc(sizeof(struct thread_info))) == NULL)
-		M_EXIT_ON_ERROR("Can't allocate memory");
+	// Allocate memory
+	if((hello_message_to_server = malloc(BUFSIZE)) == NULL)
+		M_PRINT_ERROR("Can't allocate memory");
 
-	server_socket_fd = chat_client_connect(host, port);
-	tinfo->socket_fd = server_socket_fd;
+	if((hello_message_from_server = malloc(BUFSIZE)) == NULL)
+		M_PRINT_ERROR("Can't allocate memory");
 
+	// Send hello message to server
+	sprintf(hello_message_to_server, "%s%s%s", cs->nickname, HELLO_MSG_DELIM, own_public_key);
+	if(chat_client_write(server_fd, hello_message_to_server, BUFSIZE))
+		M_PRINT_ERROR("Error on sending hello message to server");
 
-	// 2 Threads: One for receiving data from server, one for sending data
-	pthread_create(&threadID, NULL, chat_client_receive, tinfo);
-	chat_client_read_and_send(server_socket_fd);
+	// Get server's hello message
+	if(chat_client_read(server_fd, hello_message_from_server, BUFSIZE) < 0) {
+		M_PRINT_ERROR("Error receiving hello message from server");
+	} else {
+		char *saveptr = NULL;
 
-	pthread_exit(NULL);
+		// Save nickname
+		ss->nickname = strtok_r(hello_message_from_server, HELLO_MSG_DELIM, &saveptr);
+
+		// Save public key
+		ss->rsa_pub_key = key_str2key(strtok_r(NULL, HELLO_MSG_DELIM, &saveptr));
+	}
 }
+
 

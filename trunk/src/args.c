@@ -29,6 +29,7 @@ static void print_syntax(char *prog) {
     printf("           \t\t $HOME/.chatstore under the given nickname\n\n");
     printf(" -c <host> <port> \t Open secure connection to <host> on <port>\n");
     printf("                  \t Example: -c 'localhost 3300' \n\n");
+    printf(" -n <nick> \t\t Set nickname when connecting to server\n\n");
     printf(" -l <port>        \t Listen on all local interfaces on the given\n");
     printf("               \t\t port and wait for secure connections.\n\n");
     printf(" -r <nick>  \t\t Change user's nick to the given one\n");
@@ -60,7 +61,7 @@ prog_args *parse_args(int argc, char **argv) {
 		fprintf(stderr, "Error: Allocate memory!");
 
 	// Parse arguments
-	while ((opt = getopt(argc, argv, "ahi:c:l:r:v")) != -1) {
+	while ((opt = getopt(argc, argv, "ahi:c:l:n:r:v")) != -1) {
 		switch (opt) {
 			case 'h':
 				print_syntax(argv[0]);
@@ -84,6 +85,11 @@ prog_args *parse_args(int argc, char **argv) {
 					args->host = strtok_r(optarg, " ", &saveptr1);
 					args->port = atoi(strtok_r(NULL, " ", &saveptr1));
 				}
+				break;
+
+			case 'n':
+				if (optarg)
+					args->nick = optarg;
 				break;
 
 			case 'l':

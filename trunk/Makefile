@@ -14,10 +14,12 @@ CFLAGS  = -W -Wall -Wextra -fmessage-length=0 -O2 -I $(INCDIR)
 LDFLAGS = -lsqlite3 -lpthread -lcrypto
 
 OBJS = $(SRCDIR)/args.o $(SRCDIR)/server.o $(SRCDIR)/client.o $(SRCDIR)/db.o \
-	   $(SRCDIR)/key.o $(SRCDIR)/crypto.o
+	   $(SRCDIR)/key.o $(SRCDIR)/crypto.o $(SRCDIR)/utils.o
 
 $(SRCDIR)%.o: %c
 	$(CC) -c $@ $^ $< $(CFLAGS) 
+
+all: RSAChat
 
 default: RSAChat
 
@@ -28,4 +30,4 @@ example: $(OBJS) $(SRCDIR)/example.o
 	$(CC) -o example $(SRCDIR)/example.o $(OBJS) $(LDFLAGS)
 
 clean:
-	$(RM) RSAChat Example $(SRCDIR)/*.o 
+	$(RM) RSAChat example $(SRCDIR)/*.o 

@@ -5,10 +5,15 @@
  *      Author: S. Gene G. <gene@staubsaal.de>
  */
 
-#include "key.h"
 #include <assert.h>
 #include <string.h>
 #include <openssl/bn.h>
+#include <sqlite3.h>
+#include <errno.h>
+#include "RSAChat.h"
+#include "key.h"
+#include "db.h"
+
 /** 
  * creates a new Key
  *
@@ -16,7 +21,6 @@
  * This Key contains to parts the v and N Value (v is usually e or d)
  * @return Pointer to Key
  */
-
 Key* key_new()
 {
 	Key* _key = malloc(sizeof(Key));
@@ -25,8 +29,10 @@ Key* key_new()
 	return _key;
 
 }
+
+
 /**
- * frees the Memory which _key pointsto
+ * frees the Memory which _key points to
  */
 void key_free(Key* _key)
 {
@@ -35,6 +41,8 @@ void key_free(Key* _key)
 	BN_free(_key->v);
 	free(_key);
 }
+
+
 /**
  * converts the _key into a String
  *
@@ -53,6 +61,7 @@ char* key_key2str(Key const* _key)
 	OPENSSL_free(t2);
 	return ret;
 }
+
 
 /**
  * converts a str to a Key
@@ -73,4 +82,79 @@ Key* key_str2key(char const* _from)
 	BN_hex2bn(&_key->N,s_key2);
 	return _key;
 }
+
+
+
+/**
+ * Gets RSA private key from DB specified by nickname
+ *
+ * @param db DB connection
+ */
+Key *key_get_private_key(sqlite3 *db, char *nickname){
+	sqlite3_stmt *stmt;
+	int rc;
+	char *sql_query = NULL;
+	char *rsa_priv_key = NULL;
+
+	if ((sql_query = malloc(BUFSIZE * 4)) == NULL)
+		M_PRINT_ERROR("Can't allocate memory");
+
+	sprintf(sql_query, "SELECT rsa_priv_key FROM \"keys\" WHERE nick = \"%s\";", nickname);
+
+	if ((rc = sqlite3_prepare(db, sql_query, -1, &stmt, 0)) != SQLITE_OK)
+		M_PRINT_ERROR("Can't prepare SQL statement");
+
+	// Take last key available
+	while(sqlite3_step(stmt) == SQLITE_ROW) {
+		const char *tmp_result = (char *) sqlite3_column_text(stmt, 0);
+
+		if ((rsa_priv_key = malloc(BUFSIZE)) == NULL)
+			M_PRINT_ERROR("Can't allocate memory");
+
+		memcpy(rsa_priv_key, tmp_result, strlen(tmp_result));
+	}
+
+	sqlite3_finalize(stmt);
+
+	assert(rsa_priv_key != NULL);
+	return key_str2key(rsa_priv_key);
+}
+
+
+/**
+ * Gets RSA public key from DB specified by nickname
+ *
+ * @param db DB connection
+ */
+Key *key_get_public_key(sqlite3 *db, char *nickname){
+	sqlite3_stmt *stmt;
+	int rc;
+	char *sql_query = NULL;
+	char *rsa_pub_key = NULL;
+
+	if ((sql_query = malloc(BUFSIZE * 4)) == NULL)
+		M_PRINT_ERROR("Can't allocate memory");
+
+	sprintf(sql_query, "SELECT rsa_pub_key FROM \"keys\" WHERE nick = \"%s\";", nickname);
+
+	if ((rc = sqlite3_prepare(db, sql_query, -1, &stmt, 0)) != SQLITE_OK)
+		M_PRINT_ERROR("Can't prepare SQL statement");
+
+	// Take last key available
+	while(sqlite3_step(stmt) == SQLITE_ROW) {
+		const char *tmp_result = (char *) sqlite3_column_text(stmt, 0);
+
+		if ((rsa_pub_key = malloc(BUFSIZE))== NULL)
+			M_PRINT_ERROR("Can't allocate memory");
+
+		memcpy(rsa_pub_key, tmp_result, strlen(tmp_result));
+	}
+
+	sqlite3_finalize(stmt);
+
+	assert(rsa_pub_key != NULL);
+	return key_str2key(rsa_pub_key);
+}
+
+
 
