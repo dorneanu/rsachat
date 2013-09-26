@@ -72,7 +72,7 @@ You can also verify that the keys were actually stored in the DB:
     sqlite> .quit
 
 
-You can run *RSAChat* in 2 modi:
+You can run *RSAChat* in 3 modi:
 
 * server
 * client
@@ -96,6 +96,7 @@ to the server as *simon*...
 ...and chat!
 
 * Victor's session
+
     % ./RSAChat -n victor -l 1337
     [--] Starting server on port 1337 ...
     [--] Got own RSA key from DB
@@ -106,6 +107,7 @@ to the server as *simon*...
     ^C
     
 * Simon's session
+
     % ./RSAChat -c 'localhost 1337' -n simon
     [--] Connect to localhost on port 1337 ...
     [--] Got own RSA key from DB
