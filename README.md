@@ -95,8 +95,9 @@ to the server as *simon*...
     
 ...and chat!
 
-* Victor's session
 
+
+Victor's session:
 
     % ./RSAChat -n victor -l 1337
     [--] Starting server on port 1337 ...
@@ -107,9 +108,8 @@ to the server as *simon*...
     bla bla
     ^C
     
-    
-* Simon's session
 
+Simon's session:
 
     % ./RSAChat -c 'localhost 1337' -n simon
     [--] Connect to localhost on port 1337 ...
